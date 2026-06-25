@@ -1,24 +1,24 @@
 param (
     [Parameter(Mandatory=$true)]
-    [string]$SubscriptionId = "xxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    [string]$subscriptionid = "xxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
 
     [Parameter(Mandatory=$true)]
-    [string]$ResourceGroupName = "resource-group-name",
+    [string]$resourcegroupname = "resource-group-name",
 
     [Parameter(Mandatory=$true)]
-    [string]$StorageAccountName = "storage-account-name",
+    [string]$storageaccountname = "storage-account-name",
 
     [Parameter(Mandatory=$true)]
-    [string]$ContainerName = "container-name",
+    [string]$containername = "container-name",
 
     [Parameter(Mandatory=$true)]
-    [string]$KeyVaultName = "key-vault-name",
+    [string]$keyvaultname = "key-vault-name",
 
     [Parameter(Mandatory=$true)]
-    [string]$SecretName = "secret-name",
+    [string]$secretname = "secret-name",
 
     [Parameter(Mandatory=$false)]
-    [int]$ExpiryInDays = 180
+    [int]$expiryindays = 180
 )
 
 try {
@@ -30,19 +30,19 @@ try {
     Write-Output "Authenticating using Managed Identity..."
     Connect-AzAccount -Identity | Out-Null
 
-    Set-AzContext -SubscriptionId $SubscriptionId | Out-Null
-    Write-Output "Connected to subscription: $SubscriptionId"
+    Set-AzContext -SubscriptionId $subscriptionid | Out-Null
+    Write-Output "Connected to subscription: $subscriptionid"
 
     # --------------------------------------------------
     # Get Storage Account Context
     # --------------------------------------------------
     Write-Output "Retrieving storage account context..."
     $storageAccount = Get-AzStorageAccount `
-        -ResourceGroupName $ResourceGroupName `
-        -Name $StorageAccountName
+        -ResourceGroupName $resourcegroupname `
+        -Name $storageaccountname
 
     if (-not $storageAccount) {
-        throw "Storage account not found: $StorageAccountName"
+        throw "Storage account not found: $storageaccountname"
     }
 
     $ctx = $storageAccount.Context
@@ -52,10 +52,10 @@ try {
     # --------------------------------------------------
     Write-Output "Generating SAS token..."
 
-    $expiryTime = (Get-Date).ToUniversalTime().AddDays($ExpiryInDays)
+    $expiryTime = (Get-Date).ToUniversalTime().AddDays($expiryindays)
 
     $sasToken = New-AzStorageContainerSASToken `
-        -Name $ContainerName `
+        -Name $containername `
         -Context $ctx `
         -Permission "racwdl" `
         -ExpiryTime $expiryTime
@@ -71,7 +71,7 @@ try {
     # --------------------------------------------------
     Write-Output "Constructing SAS URL..."
 
-    $containerUrl = $storageAccount.PrimaryEndpoints.Blob + $ContainerName
+    $containerUrl = $storageAccount.PrimaryEndpoints.Blob + $containername
     $sasUrl = "$containerUrl$sasToken"
 
     Write-Output "SAS URL constructed successfully"
@@ -84,8 +84,8 @@ try {
     $secureValue = ConvertTo-SecureString $sasUrl -AsPlainText -Force
 
     $secret = Set-AzKeyVaultSecret `
-        -VaultName $KeyVaultName `
-        -Name $SecretName `
+        -VaultName $keyvaultname `
+        -Name $secretname `
         -SecretValue $secureValue `
         -Expires $expiryTime `
         -ContentType "SAS URL - auto rotated"
@@ -101,10 +101,10 @@ try {
     # Summary
     # --------------------------------------------------
     Write-Output "===== Summary ====="
-    Write-Output "Storage Account : $StorageAccountName"
-    Write-Output "Container       : $ContainerName"
-    Write-Output "Key Vault       : $KeyVaultName"
-    Write-Output "Secret Name     : $SecretName"
+    Write-Output "Storage Account : $storageaccountname"
+    Write-Output "Container       : $containername"
+    Write-Output "Key Vault       : $keyvaultname"
+    Write-Output "Secret Name     : $secretname"
     Write-Output "Expiry (UTC)    : $expiryTime"
 
     Write-Output "===== SAS Token Rotation Completed Successfully ====="
