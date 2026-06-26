@@ -23,6 +23,11 @@ param (
 
 try {
     Write-Output "===== SAS Token Rotation Runbook Started ====="
+    
+    # Ensure Az modules are loaded
+    Import-Module Az.Accounts -ErrorAction Stop
+    Import-Module Az.Resources -ErrorAction Stop
+    Import-Module Az.Storage -ErrorAction Stop
 
     # --------------------------------------------------
     # Authenticate using Managed Identity
