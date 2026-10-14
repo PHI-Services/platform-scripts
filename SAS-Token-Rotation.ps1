@@ -50,7 +50,8 @@ try {
         throw "Storage account not found: $storageAccountName"
     }
 
-    $ctx = $storageAccount.Context
+    $key = (Get-AzStorageAccountKey -ResourceGroupName $resourcegroupname -Name $storageaccountname)[0].Value
+    $ctx = New-AzStorageContext -StorageAccountName $storageaccountname -StorageAccountKey $key
 
     # --------------------------------------------------
     # Generate SAS Token
@@ -59,12 +60,12 @@ try {
 
     $expiryTime = (Get-Date).ToUniversalTime().AddDays($expiryindays)
 
-    $sasToken = New-AzStorageContainerSASToken `
-        -Name $containerName `
+    $sasToken = New-AzStorageAccountSASToken `
         -Context $ctx `
+        -Service Blob `
+        -ResourceType Service,Container,Object `
         -Permission "racwdl" `
-        -ExpiryTime $expiryTime `
-        -FullUri
+        -ExpiryTime $expiryTime 
 
     if (-not $sasToken) {
         throw "Failed to generate SAS token"
